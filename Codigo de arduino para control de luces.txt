@@ -1,0 +1,31 @@
+void setup(){
+ pinMode(3,OUTPUT);
+ pinMode(4,OUTPUT);
+ pinMode(5,OUTPUT);
+ Serial.begin(9600); //Velocidad de transferencia de datos cuando se utiliza la comunicacion serial
+}
+void loop(){
+    if (Serial.available()){
+        char cmd=Serial.read();
+	   if (cmd=='b'){
+	       digitalWrite(3,LOW);
+	       }
+	   else if (cmd=='B'){
+	       digitalWrite(3,HIGH);
+	       }
+	    else if (cmd=='c'){
+	       digitalWrite(4,LOW);
+	       }
+	   else if (cmd=='C'){
+	       digitalWrite(4,HIGH);
+	       }
+	    else if (cmd=='d'){
+	       digitalWrite(5,LOW);
+	       }
+	   else if (cmd=='D'){
+	       digitalWrite(5,HIGH);
+	       }
+      } 
+}
+
+
