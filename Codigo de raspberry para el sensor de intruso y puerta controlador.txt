@@ -1,0 +1,199 @@
+import time #
+import serial #
+import requests #
+import random #
+
+
+## LIBRERIAS PARA ENVIAR A GMAIL
+import smtplib,ssl  
+from time import sleep  
+from email.mime.multipart import MIMEMultipart  
+from email.mime.base import MIMEBase  
+from email.mime.text import MIMEText  
+from email.utils import formatdate  
+from email import encoders
+from email.mime.image import MIMEImage
+### FIN...
+
+
+
+
+### FUNCION PARA ENVIAR IGAMEN A GMAIL
+def envia_email():  
+    enviador = 'raspberryenvio@gmail.com'
+    asunto = "Cuidado: Existe un movimiento no usual en tu vivienda"
+    receptor = 'tanjirocamadopi@gmail.com'
+    
+    msg = MIMEMultipart()   
+    msg['From'] = enviador
+    msg['Subject'] = asunto 
+    msg['To'] = receptor
+    
+    part = MIMEBase('application', "octet-stream")  
+    part.set_payload(open("/home/pi/ladron.jpg", "rb").read())  
+    encoders.encode_base64(part)  
+    part.add_header('Content-Disposition', 'attachment; filename="ladron.jpg"')
+    msg.attach(part)
+
+    try:  
+       s = smtplib.SMTP('smtp.gmail.com:587') #SMTP///, 587
+       s.ehlo()  
+       s.starttls()   
+       s.login(user = enviador, password = "123456posi")
+       s.sendmail(enviador, receptor, "SE confirmo un movimiento en tu residencia") # Envia texto. Consulta Spam.
+       s.sendmail(enviador, receptor, msg.as_string()) # Envia imagen.
+       s.quit()  
+    except smtplib.SMTPException as error:  
+          print ("Error")
+
+
+### SEGUNDA FUNCION
+          
+def envia_email2():  
+    enviador = 'raspberryenvio@gmail.com'
+    asunto = "Peligro: hay un movimiento inusual en tu vivienda"
+    receptor = 'tanjirocamadopi@gmail.com'
+    
+    msg = MIMEMultipart()   
+    msg['From'] = enviador
+    msg['Subject'] = asunto 
+    msg['To'] = receptor
+    
+    part = MIMEBase('application', "octet-stream")  
+    part.set_payload(open("/home/pi/sin_movimiento.jpg", "rb").read())  
+    encoders.encode_base64(part)  
+    part.add_header('Content-Disposition', 'attachment; filename="sin_movimiento.jpg"')
+    msg.attach(part)
+
+    try:  
+       s = smtplib.SMTP('smtp.gmail.com:587') #SMTP///, 587
+       s.ehlo()  
+       s.starttls()   
+       s.login(user = enviador, password = "123456posi")
+       s.sendmail(enviador, receptor, "Cuidado: EXiste movimiento en tu vivienda") # Envia texto. Consulta Spam.
+       s.sendmail(enviador, receptor, msg.as_string()) # Envia imagen.
+       s.quit()  
+    except smtplib.SMTPException as error:  
+          print ("Error")
+  
+ 
+
+
+
+
+
+ser = serial.Serial('/dev/ttyS1', 9600,timeout=3.0) #update with port for Arduino
+ENDPOINT1 = "things.ubidots.com" #Para el sensor de puerta
+ENDPOINT2 = "things.ubidots.com" #Para el sensor de intruso
+DEVICE_LABEL1 = "controlador_puerta"
+DEVICE_LABEL2 = "sensor_intruso"
+TOKEN1 = "BBFF-DYqealDhZrMYkbLxxSQllqO5gZYvhL" #Para el sensor de puerta 
+TOKEN2 = "BBFF-s1oNx7hl4cWn1inBXFkKLq8HrB6Ct8" #Para el sensor de intruso
+
+
+
+
+
+
+
+#Controaldor de puerta
+VARIABLE_LABEL_1 = "Cantidad de puertas abiertas"  #Valor de puertas abiertas
+VARIABLE_LABEL_2 = "Cantidad de puertas bloqueadas" #Valor de puertas bloqueadas
+#STATE1 = 'Valvestatus' #Estado de la valvula
+#STATE2 = 'lamp2status'
+#STATE3 = 'motorstatus'
+
+#Sensor de intruso
+VARIABLE_LABEL_3 = "Sensor de intruso"
+
+delay = 1
+datos = []
+
+#Controlador d epuertas
+def post_var1(payload1, url=ENDPOINT1, device=DEVICE_LABEL1, token=TOKEN1): #Funcion para conectarme a la nube ---- #Controlador de puertas
+    try:
+        url = "http://{}/api/v1.6/devices/{}".format(url, device)
+        headers = {"X-Auth-Token": token, "Content-Type": "application/json"}
+
+        attempts = 0
+        status_code = 400
+
+        while status_code >= 400 and attempts < 5:
+            print("[INFO] Sending data, attempt number: {}".format(attempts))
+            req = requests.post(url=url, headers=headers,
+                                json=payload1)
+            status_code = req.status_code
+            attempts += 1
+            time.sleep(1)
+
+        print("[INFO] Results:")
+        print(req.text)
+    except Exception as e:
+        print("[ERROR] Error posting, details: {}".format(e))
+        
+        
+        
+def post_var2(payload2, url=ENDPOINT2, device=DEVICE_LABEL2, token=TOKEN2): #Funcion para conectarme a la nube ---- #Sensor de intruso
+    try:
+        url = "http://{}/api/v1.6/devices/{}".format(url, device)
+        headers = {"X-Auth-Token": token, "Content-Type": "application/json"}
+
+        attempts = 0
+        status_code = 400
+
+        while status_code >= 400 and attempts < 5:
+            print("[INFO] Sending data, attempt number: {}".format(attempts))
+            req = requests.post(url=url, headers=headers,
+                                json=payload2)
+            status_code = req.status_code
+            attempts += 1
+            time.sleep(1)
+
+        print("[INFO] Results:")
+        print(req.text)
+    except Exception as e:
+        print("[ERROR] Error posting, details: {}".format(e))
+                
+
+def recibir_data(): #Leo los datos del arduino 
+    while(ser.in_waiting > 0):
+        data = ser.readline().strip().decode().split('//') #Devuelve una lista
+        return data
+    return False
+
+def main():
+    datos = recibir_data()
+    if(datos != False):
+        if(datos[0] == "$04"):
+            print(datos)
+            ID = datos[0]
+            abiertos = datos[1]
+            bloqueados = datos[2]
+            #Builds Payload and topíc
+            payload1 = {VARIABLE_LABEL_1: abiertos,
+                       VARIABLE_LABEL_2: bloqueados} 
+            # Sends data
+            post_var1(payload1)
+                
+        if(datos[0] == "$05"):
+            print(datos)
+            
+            ID = datos[0]
+            intruso = datos[1]
+            payload2 = {VARIABLE_LABEL_3: intruso}
+            
+            if (intruso == '1'):
+                envia_email()
+            if (intruso == '0'):
+                envia_email2()
+            post_var2(payload2)
+            
+        else:
+            return
+
+
+if __name__ == '__main__':
+    while (True):
+        main()
+        time.sleep(1)
+
